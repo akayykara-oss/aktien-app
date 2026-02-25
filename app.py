@@ -1,107 +1,55 @@
 import streamlit as st
 import requests
-import pandas as pd
 
-# KONFIGURATION
-API_KEY = "DEIN_API_KEY_HIER"  # Ersetze dies durch deinen Key
-SYMBOL = st.sidebar.text_input("Ticker Symbol (z.B. AAPL, TSLA)", "AAPL")
+# Seite für das iPhone optimieren
+st.set_page_config(page_title="US Stock Analyzer", layout="centered")
 
-def get_stock_data(symbol):
-    # Fundamentaldaten abrufen
-    url = f"https://financialmodelingprep.com/api/v3/key-metrics-ttm/{symbol}?apikey={API_KEY}"
-    data = requests.get(url).json()
-    return data[0] if data else None
+# Dein API-Key und Konfiguration
+API_KEY = "7WVP0MXARBW5EN7D"
 
-st.title(f"🚀 AI Stock Analyzer: {SYMBOL}")
+st.title("🚀 US Aktien-Check")
+st.write("Gib ein US-Kürzel ein, um eine Sofort-Analyse zu erhalten.")
 
-data = get_stock_data(SYMBOL)
+# Eingabefeld
+symbol = st.text_input("Ticker Symbol (z.B. NVDA, TSLA, AAPL)", "AAPL").upper()
 
-if data:
-    # Kennzahlen extrahieren
-    pe_ratio = data.get('peRatioTTM', 0)
-    debt_to_equity = data.get('debtToEquityTTM', 0)
-    roe = data.get('roeTTM', 0) * 100 # In Prozent
+def get_stock_overview(ticker):
+    url = f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker}&apikey={API_KEY}"
+    try:
+        response = requests.get(url)
+        return response.json()
+    except:
+        return None
 
-    # AUTOMATISCHE ANALYSE (Scoring 0-3)
-    score = 0
-    reasons = []
+if symbol:
+    with st.spinner('Analysiere Markt-Daten...'):
+        data = get_stock_overview(symbol)
 
-    if pe_ratio < 20: 
-        score += 1
-        reasons.append("✅ Günstig bewertet (KGV < 20)")
-    if roe > 15: 
-        score += 1
-        reasons.append("✅ Hohe Eigenkapitalrendite (> 15%)")
-    if debt_to_equity < 1: 
-        score += 1
-        reasons.append("✅ Solide Finanzen (Verschuldung < 1)")
+    if data and "Symbol" in data:
+        st.header(f"{data.get('Name', symbol)}")
+        
+        # Kennzahlen ziehen
+        pe = float(data.get('PERatio', 0))
+        div = float(data.get('DividendYield', 0)) * 100
+        eps = data.get('EPS', 'N/A')
 
-    # ANZEIGE
-    col1, col2, col3 = st.columns(3)
-    col1.metric("KGV", f"{pe_ratio:.2f}")
-    col2.metric("ROE", f"{roe:.2f}%")
-    col3.metric("Debt/Equity", f"{debt_to_equity:.2f}")
+        # Mobile Anzeige in Kacheln
+        col1, col2 = st.columns(2)
+        col1.metric("KGV", pe)
+        col2.metric("Dividende", f"{div:.2f}%")
 
-    st.subheader(f"Gesamt-Score: {score} / 3")
-    for r in reasons:
-        st.write(r)
+        st.divider()
 
-    if score >= 2:
-        st.success("EMPFEHLUNG: KAUFEN / HALTEN")
+        # Ampel-Logik
+        if pe > 0 and pe < 25:
+            st.success("🟢 BEWERTUNG: Günstig / Fair (Kaufkandidat)")
+        elif pe >= 25:
+            st.warning("🟡 BEWERTUNG: Teuer (Vorsicht)")
+        else:
+            st.error("🔴 BEWERTUNG: Kein Gewinn / Risiko")
+
+        # Beschreibung für den schnellen Überblick
+        with st.expander("Was macht das Unternehmen?"):
+            st.write(data.get('Description', 'Keine Beschreibung verfügbar.'))
     else:
-        st.error("EMPFEHLUNG: VORSICHT / VERKAUFEN")
-else:
-    st.warning("Keine Daten gefunden. Überprüfe das Symbol oder den API-Key.")import streamlit as st
-import requests
-import pandas as pd
-
-# KONFIGURATION
-API_KEY = "DEIN_API_KEY_HIER"  # Ersetze dies durch deinen Key
-SYMBOL = st.sidebar.text_input("Ticker Symbol (z.B. AAPL, TSLA)", "AAPL")
-
-def get_stock_data(symbol):
-    # Fundamentaldaten abrufen
-    url = f"https://financialmodelingprep.com/api/v3/key-metrics-ttm/{symbol}?apikey={API_KEY}"
-    data = requests.get(url).json()
-    return data[0] if data else None
-
-st.title(f"🚀 AI Stock Analyzer: {SYMBOL}")
-
-data = get_stock_data(SYMBOL)
-
-if data:
-    # Kennzahlen extrahieren
-    pe_ratio = data.get('peRatioTTM', 0)
-    debt_to_equity = data.get('debtToEquityTTM', 0)
-    roe = data.get('roeTTM', 0) * 100 # In Prozent
-
-    # AUTOMATISCHE ANALYSE (Scoring 0-3)
-    score = 0
-    reasons = []
-
-    if pe_ratio < 20: 
-        score += 1
-        reasons.append("✅ Günstig bewertet (KGV < 20)")
-    if roe > 15: 
-        score += 1
-        reasons.append("✅ Hohe Eigenkapitalrendite (> 15%)")
-    if debt_to_equity < 1: 
-        score += 1
-        reasons.append("✅ Solide Finanzen (Verschuldung < 1)")
-
-    # ANZEIGE
-    col1, col2, col3 = st.columns(3)
-    col1.metric("KGV", f"{pe_ratio:.2f}")
-    col2.metric("ROE", f"{roe:.2f}%")
-    col3.metric("Debt/Equity", f"{debt_to_equity:.2f}")
-
-    st.subheader(f"Gesamt-Score: {score} / 3")
-    for r in reasons:
-        st.write(r)
-
-    if score >= 2:
-        st.success("EMPFEHLUNG: KAUFEN / HALTEN")
-    else:
-        st.error("EMPFEHLUNG: VORSICHT / VERKAUFEN")
-else:
-    st.warning("Keine Daten gefunden. Überprüfe das Symbol oder den API-Key.")
+        st.error("Limit erreicht oder Symbol falsch. Bitte 15 Sek. warten (Free API Key).")
